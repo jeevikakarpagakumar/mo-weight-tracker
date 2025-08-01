@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Body Weight Tracker</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN for the graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for the container to center it */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        /* Style for the chart canvas to make it responsive */
+        #weightChart {
+            max-height: 400px;
+            width: 100% !important;
+            height: auto !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex items-center justify-center p-4">
+
+    <div class="container bg-white rounded-2xl shadow-xl p-6 md:p-10 space-y-8">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-center">Body Weight Tracker</h1>
+
+        <!-- Chart Container -->
+        <div class="bg-gray-50 rounded-xl p-4 md:p-6 shadow-inner">
+            <canvas id="weightChart"></canvas>
+        </div>
+        
+        <!-- Interactive Input Section -->
+        <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+            <input 
+                id="newWeightInput" 
+                type="number" 
+                placeholder="Enter new weight (kg)"
+                class="w-full sm:w-64 px-4 py-3 text-center rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+            />
+            <button 
+                id="addWeightButton"
+                class="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200"
+            >
+                Add Weight
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Initial dataset provided by the user
+        let weightData = [
+            76.8, 77.0, 75.6, 77.6, 78.0, 77.0, 77.6, 76.4, 76.6, 77.4, 78.4,
+            77.7, 78.2, 78.8, 79.1, 79.4, 78.4, 78.4, 78.5, 77.8, 78.4, 78.6,
+            78.6, 78.6, 78.8, 79.0, 78.4, 78.8, 80.3, 80.6, 80.6, 81.4, 81.4,
+            81.2, 80.8, 82.0, 82.0, 83.2, 82.4, 82.2, 82.8, 82.4, 83.0, 82.8, 83.0
+        ];
+
+        // Create labels for the x-axis (Day 1, Day 2, etc.)
+        let labels = weightData.map((_, index) => `Day ${index + 1}`);
+
+        // Get the canvas element and its context
+        const ctx = document.getElementById('weightChart').getContext('2d');
+
+        // Configure and create the Chart.js line chart
+        const weightChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Body Weight (kg)',
+                    data: weightData,
+                    borderColor: 'rgb(99, 102, 241)', // Indigo-600
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4, // Smooth the line
+                    pointBackgroundColor: 'rgb(99, 102, 241)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false // Hide the legend for a cleaner look
+                    },
+                    tooltip: {
+                        backgroundColor: '#fff',
+                        titleColor: '#1e293b',
+                        bodyColor: '#0f172a',
+                        borderColor: '#e2e8f0',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        padding: 10,
+                        callbacks: {
+                            title: (tooltipItem) => tooltipItem[0].label,
+                            label: (tooltipItem) => `Weight: ${tooltipItem.raw} kg`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Day',
+                            color: '#475569',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: { color: '#e2e8f0' },
+                        ticks: { color: '#64748b' }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Weight (kg)',
+                            color: '#475569',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: { color: '#e2e8f0' },
+                        ticks: { color: '#64748b' }
+                    }
+                }
+            }
+        });
+
+        // Get the input and button elements
+        const newWeightInput = document.getElementById('newWeightInput');
+        const addWeightButton = document.getElementById('addWeightButton');
+
+        // Function to add a new weight entry and update the chart
+        function addWeight() {
+            const newWeight = parseFloat(newWeightInput.value);
+            if (!isNaN(newWeight)) {
+                // Add the new weight to the data array
+                weightData.push(newWeight);
+                // Update the labels
+                labels.push(`Day ${labels.length + 1}`);
+
+                // Update the chart data and re-render it
+                weightChart.data.labels = labels;
+                weightChart.data.datasets[0].data = weightData;
+                weightChart.update();
+
+                // Clear the input field
+                newWeightInput.value = '';
+            }
+        }
+
+        // Add event listeners for both button click and 'Enter' key press
+        addWeightButton.addEventListener('click', addWeight);
+        newWeightInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                addWeight();
+            }
+        });
+
+    </script>
+
+</body>
+</html>
