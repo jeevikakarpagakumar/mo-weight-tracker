@@ -86,16 +86,10 @@
             </div>
             <!-- Action Buttons -->
             <button 
-                id="addWeightButton"
+                id="saveButton"
                 class="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200"
             >
-                Add Weight
-            </button>
-            <button 
-                id="undoButton"
-                class="w-full sm:w-auto px-8 py-3 bg-gray-400 text-white font-semibold rounded-xl shadow-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200"
-            >
-                Undo Last
+                Save
             </button>
             <button 
                 id="exportButton"
@@ -103,6 +97,14 @@
             >
                 Export to CSV
             </button>
+        </div>
+
+        <!-- Data Display Section -->
+        <div class="mt-8">
+            <h2 class="text-2xl font-bold mb-4 text-center">Your Entries</h2>
+            <div id="dataList" class="space-y-2">
+                <!-- Data will be rendered here -->
+            </div>
         </div>
     </div>
 
@@ -173,10 +175,16 @@
         function parseData(dataString) {
             const lines = dataString.trim().split('\n');
             const data = [];
+            const currentYear = new Date().getFullYear();
             lines.forEach(line => {
                 const parts = line.trim().split(/\s+/);
                 if (parts.length >= 2) {
-                    const date = parts[0].replace(/[AE]/, ''); // Remove 'A' or 'E'
+                    const datePart = parts[0].replace(/[AE]/, ''); // Remove 'A' or 'E'
+                    const [day, month] = datePart.split('.').map(Number);
+                    
+                    // Create a consistent date format (YYYY-MM-DD) for sorting and calendar input
+                    const date = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    
                     const firstWeight = parseFloat(parts[1]);
                     const lastWeight = parseFloat(parts[2]) || firstWeight; // Handle single weight case
 
@@ -189,6 +197,8 @@
                     }
                 }
             });
+            // Sort data by date
+            data.sort((a, b) => new Date(a.date) - new Date(b.date));
             return data;
         }
 
@@ -201,7 +211,6 @@
 
         // Function to render or update the chart
         function renderChart() {
-            // Destroy the old chart instance if it exists
             if (weightChart) {
                 weightChart.destroy();
             }
@@ -210,7 +219,6 @@
             const firstWeights = parsedData.map(d => d.firstWeight);
             const lastWeights = parsedData.map(d => d.lastWeight);
 
-            // Configure and create the Chart.js line chart
             weightChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -218,7 +226,7 @@
                     datasets: [{
                         label: 'First Checked Weight',
                         data: firstWeights,
-                        borderColor: 'rgb(99, 102, 241)', // Indigo-600
+                        borderColor: 'rgb(99, 102, 241)',
                         backgroundColor: 'rgba(99, 102, 241, 0.1)',
                         borderWidth: 2,
                         tension: 0.4,
@@ -231,7 +239,7 @@
                     {
                         label: 'Last Checked Weight',
                         data: lastWeights,
-                        borderColor: 'rgb(249, 115, 22)', // Orange-500
+                        borderColor: 'rgb(249, 115, 22)',
                         backgroundColor: 'rgba(249, 115, 22, 0.1)',
                         borderWidth: 2,
                         tension: 0.4,
@@ -296,16 +304,48 @@
                 }
             });
         }
+
+        // Function to render the data list
+        function renderDataList() {
+            const dataList = document.getElementById('dataList');
+            dataList.innerHTML = '';
+            parsedData.forEach((entry, index) => {
+                const listItem = document.createElement('div');
+                listItem.className = 'flex items-center justify-between bg-gray-100 p-3 rounded-lg shadow-sm';
+                const formattedDate = new Date(entry.date).toLocaleDateString();
+                listItem.innerHTML = `
+                    <div class="flex-grow">
+                        <span class="font-bold text-gray-900">${formattedDate}</span>: 
+                        <span class="text-sm text-gray-700">First: ${entry.firstWeight} kg, Last: ${entry.lastWeight} kg</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="edit-btn px-4 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors" data-index="${index}">Edit</button>
+                        <button class="delete-btn px-4 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors" data-index="${index}">Delete</button>
+                    </div>
+                `;
+                dataList.appendChild(listItem);
+            });
+
+            // Add event listeners to the new buttons
+            document.querySelectorAll('.edit-btn').forEach(button => {
+                button.addEventListener('click', handleEdit);
+            });
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', handleDelete);
+            });
+        }
         
-        // Initial chart rendering
-        document.addEventListener('DOMContentLoaded', renderChart);
+        // Initial rendering on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderChart();
+            renderDataList();
+        });
 
         // Get the input and button elements
         const dateInput = document.getElementById('dateInput');
         const firstWeightInput = document.getElementById('firstWeightInput');
         const lastWeightInput = document.getElementById('lastWeightInput');
-        const addWeightButton = document.getElementById('addWeightButton');
-        const undoButton = document.getElementById('undoButton');
+        const saveButton = document.getElementById('saveButton');
         const exportButton = document.getElementById('exportButton');
 
         // Modal elements
@@ -324,19 +364,28 @@
             alertModal.style.display = 'none';
         }
 
-        // Function to add a new weight entry and update the chart
-        function addWeight() {
+        // Function to handle saving an entry (add or update)
+        function saveEntry() {
             const date = dateInput.value;
             const firstWeight = parseFloat(firstWeightInput.value);
             const lastWeight = parseFloat(lastWeightInput.value) || firstWeight;
 
             if (date && !isNaN(firstWeight)) {
-                parsedData.push({
-                    date: date,
-                    firstWeight: firstWeight,
-                    lastWeight: lastWeight
-                });
+                // Find if an entry with the same date already exists
+                const existingIndex = parsedData.findIndex(entry => entry.date === date);
+
+                if (existingIndex !== -1) {
+                    // Update existing entry
+                    parsedData[existingIndex] = { date, firstWeight, lastWeight };
+                } else {
+                    // Add new entry
+                    parsedData.push({ date, firstWeight, lastWeight });
+                    // Sort the data by date after adding a new entry
+                    parsedData.sort((a, b) => new Date(a.date) - new Date(b.date));
+                }
+
                 renderChart();
+                renderDataList();
 
                 // Clear the input fields
                 dateInput.value = '';
@@ -346,15 +395,26 @@
                 showModal('Please enter a valid date and at least the first weight.');
             }
         }
-
-        // Function to undo the last entry
-        function undoLast() {
-            if (parsedData.length > 0) {
-                parsedData.pop();
-                renderChart();
+        
+        // Function to handle the edit button click
+        function handleEdit(event) {
+            const indexToEdit = event.target.getAttribute('data-index');
+            const entry = parsedData[indexToEdit];
+            if (entry) {
+                dateInput.value = entry.date;
+                firstWeightInput.value = entry.firstWeight;
+                lastWeightInput.value = entry.lastWeight;
             }
         }
-        
+
+        // Function to handle the delete button click
+        function handleDelete(event) {
+            const indexToDelete = event.target.getAttribute('data-index');
+            parsedData.splice(indexToDelete, 1);
+            renderChart();
+            renderDataList();
+        }
+
         // Function to export data to a CSV file
         function exportToCSV() {
             // Create the CSV header
@@ -380,14 +440,13 @@
         }
 
         // Add event listeners
-        addWeightButton.addEventListener('click', addWeight);
-        undoButton.addEventListener('click', undoLast);
+        saveButton.addEventListener('click', saveEntry);
         exportButton.addEventListener('click', exportToCSV);
         closeModalButton.addEventListener('click', hideModal);
 
         document.addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
-                addWeight();
+                saveEntry();
             }
         });
         
