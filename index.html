@@ -22,6 +22,25 @@
             width: 100% !important;
             height: auto !important;
         }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex items-center justify-center p-4">
@@ -65,20 +84,33 @@
                     class="w-full px-4 py-3 text-center rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                 />
             </div>
-            <!-- Add Button -->
+            <!-- Action Buttons -->
             <button 
                 id="addWeightButton"
                 class="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200"
             >
                 Add Weight
             </button>
-            <!-- Undo Button -->
             <button 
                 id="undoButton"
                 class="w-full sm:w-auto px-8 py-3 bg-gray-400 text-white font-semibold rounded-xl shadow-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200"
             >
                 Undo Last
             </button>
+            <button 
+                id="exportButton"
+                class="w-full sm:w-auto px-8 py-3 bg-green-600 text-white font-semibold rounded-xl shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200"
+            >
+                Export to CSV
+            </button>
+        </div>
+    </div>
+
+    <!-- Custom Modal for alerts -->
+    <div id="alertModal" class="modal">
+        <div class="modal-content">
+            <p id="modalMessage" class="text-lg font-medium text-slate-800 mb-4"></p>
+            <button id="closeModalButton" class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700">OK</button>
         </div>
     </div>
 
@@ -274,6 +306,23 @@
         const lastWeightInput = document.getElementById('lastWeightInput');
         const addWeightButton = document.getElementById('addWeightButton');
         const undoButton = document.getElementById('undoButton');
+        const exportButton = document.getElementById('exportButton');
+
+        // Modal elements
+        const alertModal = document.getElementById('alertModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const closeModalButton = document.getElementById('closeModalButton');
+
+        // Function to show the custom modal
+        function showModal(message) {
+            modalMessage.textContent = message;
+            alertModal.style.display = 'flex';
+        }
+
+        // Function to hide the custom modal
+        function hideModal() {
+            alertModal.style.display = 'none';
+        }
 
         // Function to add a new weight entry and update the chart
         function addWeight() {
@@ -294,7 +343,7 @@
                 firstWeightInput.value = '';
                 lastWeightInput.value = '';
             } else {
-                alert('Please enter a valid date and at least the first weight.');
+                showModal('Please enter a valid date and at least the first weight.');
             }
         }
 
@@ -305,10 +354,37 @@
                 renderChart();
             }
         }
+        
+        // Function to export data to a CSV file
+        function exportToCSV() {
+            // Create the CSV header
+            let csvContent = "Date,First Checked Weight (kg),Last Checked Weight (kg)\n";
+
+            // Add the data rows
+            parsedData.forEach(row => {
+                csvContent += `${row.date},${row.firstWeight},${row.lastWeight}\n`;
+            });
+
+            // Create a Blob and a link to download the file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'mohesh_weight_tracker.csv');
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         // Add event listeners
         addWeightButton.addEventListener('click', addWeight);
         undoButton.addEventListener('click', undoLast);
+        exportButton.addEventListener('click', exportToCSV);
+        closeModalButton.addEventListener('click', hideModal);
+
         document.addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
                 addWeight();
