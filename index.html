@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Body Weight Tracker</title>
-    <!-- Tailwind CSS CDN for styling -->
+    <title>Mohesh's Weight Tracker</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js CDN for the graph -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,13 +12,11 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Custom styles for the container to center it */
         .container {
             max-width: 960px;
             margin: 0 auto;
             padding: 1rem;
         }
-        /* Style for the chart canvas to make it responsive */
         #weightChart {
             max-height: 400px;
             width: 100% !important;
@@ -29,7 +27,7 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen flex items-center justify-center p-4">
 
     <div class="container bg-white rounded-2xl shadow-xl p-6 md:p-10 space-y-8">
-        <h1 class="text-3xl md:text-4xl font-extrabold text-center">Body Weight Tracker</h1>
+        <h1 class="text-3xl md:text-4xl font-extrabold text-center">Mohesh's Weight Tracker</h1>
 
         <!-- Chart Container -->
         <div class="bg-gray-50 rounded-xl p-4 md:p-6 shadow-inner">
@@ -37,134 +35,286 @@
         </div>
         
         <!-- Interactive Input Section -->
-        <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
-            <input 
-                id="newWeightInput" 
-                type="number" 
-                placeholder="Enter new weight (kg)"
-                class="w-full sm:w-64 px-4 py-3 text-center rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-            />
+        <div class="flex flex-col sm:flex-row flex-wrap justify-center items-center gap-4">
+            <!-- Date Input -->
+            <div class="w-full sm:w-auto flex-grow-0">
+                <label for="dateInput" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input 
+                    id="dateInput" 
+                    type="date" 
+                    class="w-full px-4 py-3 text-center rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                />
+            </div>
+            <!-- First Weight Input -->
+            <div class="w-full sm:w-auto flex-grow">
+                <label for="firstWeightInput" class="block text-sm font-medium text-gray-700 mb-1">First Checked Weight (kg)</label>
+                <input 
+                    id="firstWeightInput" 
+                    type="number" 
+                    placeholder="e.g., 78.4"
+                    class="w-full px-4 py-3 text-center rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                />
+            </div>
+            <!-- Last Weight Input -->
+            <div class="w-full sm:w-auto flex-grow">
+                <label for="lastWeightInput" class="block text-sm font-medium text-gray-700 mb-1">Last Checked Weight (kg)</label>
+                <input 
+                    id="lastWeightInput" 
+                    type="number" 
+                    placeholder="e.g., 78.6"
+                    class="w-full px-4 py-3 text-center rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                />
+            </div>
+            <!-- Add Button -->
             <button 
                 id="addWeightButton"
                 class="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200"
             >
                 Add Weight
             </button>
+            <!-- Undo Button -->
+            <button 
+                id="undoButton"
+                class="w-full sm:w-auto px-8 py-3 bg-gray-400 text-white font-semibold rounded-xl shadow-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200"
+            >
+                Undo Last
+            </button>
         </div>
     </div>
 
     <script>
-        // Initial dataset provided by the user
-        let weightData = [
-            76.8, 77.0, 75.6, 77.6, 78.0, 77.0, 77.6, 76.4, 76.6, 77.4, 78.4,
-            77.7, 78.2, 78.8, 79.1, 79.4, 78.4, 78.4, 78.5, 77.8, 78.4, 78.6,
-            78.6, 78.6, 78.8, 79.0, 78.4, 78.8, 80.3, 80.6, 80.6, 81.4, 81.4,
-            81.2, 80.8, 82.0, 82.0, 83.2, 82.4, 82.2, 82.8, 82.4, 83.0, 82.8, 83.0
-        ];
+        // Raw dataset provided by the user
+        const rawDataString = `
+09.05E  76.8 
+10.05E  77.0 76.8
+12.05M 76.0 75.6
+13.05E  77.6
+14.05E  77.8 78.0
+15.05E  77.2 77.0
+16.05E  77.8 77.6
+17.05E  76.8 76.4
+19.05M 76.8 76.6
+28.05E  77.2 77.4
+30.05E  78.0 78.4
+01.06E No food
+02.06E  77.7
+03.06E  78.4 78.2
+04.06E  79.0 78.8
+05.06E  79.4 79.1
+06.06E  79.2 79.4
+10.06M 78.6 78.4
+12.06M 78.6 78.4
+21.06M 78.5 78.5
+26.06M 77.6 77.8
+27.06M 78.4 
+28.06M 79.0 78.6
+30.06M 78.4
+01.07M 79.0 78.9
+02.07M 78.8 78.6
+03.07M 78.6
+04.07M 79.0 78.8
+05.07M 79.2 79.0
+06.07M 78.6 78.4
+07.07M 79.0 78.8 
+08.07M 80.4 80.3
+09.07A 80.8
+10.07A 80.8 80.6
+11.07A 80.8 80.6
+12.07A 81.4
+14.07A 81.6 81.4
+19.07A 81.6 81.2
+21.07A 81.3 80.8
+22.07A 82.4
+23.07A 82.4 82.0
+24.07A 82.4 82.0
+25.07A 83.2
+26.07A 82.8 82.4
+28.07A 82.4 82.2
+29.07A 83.0 82.8
+30.07A 82.8 82.4
+31.07A 83.0 83.4
+        `;
 
-        // Create labels for the x-axis (Day 1, Day 2, etc.)
-        let labels = weightData.map((_, index) => `Day ${index + 1}`);
+        let parsedData = [];
+
+        // Function to parse the raw data string into a structured array
+        function parseData(dataString) {
+            const lines = dataString.trim().split('\n');
+            const data = [];
+            lines.forEach(line => {
+                const parts = line.trim().split(/\s+/);
+                if (parts.length >= 2) {
+                    const date = parts[0].replace(/[AE]/, ''); // Remove 'A' or 'E'
+                    const firstWeight = parseFloat(parts[1]);
+                    const lastWeight = parseFloat(parts[2]) || firstWeight; // Handle single weight case
+
+                    if (!isNaN(firstWeight)) {
+                        data.push({
+                            date: date,
+                            firstWeight: firstWeight,
+                            lastWeight: lastWeight
+                        });
+                    }
+                }
+            });
+            return data;
+        }
+
+        // Initialize with parsed data
+        parsedData = parseData(rawDataString);
 
         // Get the canvas element and its context
         const ctx = document.getElementById('weightChart').getContext('2d');
+        let weightChart;
 
-        // Configure and create the Chart.js line chart
-        const weightChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Body Weight (kg)',
-                    data: weightData,
-                    borderColor: 'rgb(99, 102, 241)', // Indigo-600
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4, // Smooth the line
-                    pointBackgroundColor: 'rgb(99, 102, 241)',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false // Hide the legend for a cleaner look
+        // Function to render or update the chart
+        function renderChart() {
+            // Destroy the old chart instance if it exists
+            if (weightChart) {
+                weightChart.destroy();
+            }
+
+            const labels = parsedData.map(d => d.date);
+            const firstWeights = parsedData.map(d => d.firstWeight);
+            const lastWeights = parsedData.map(d => d.lastWeight);
+
+            // Configure and create the Chart.js line chart
+            weightChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'First Checked Weight',
+                        data: firstWeights,
+                        borderColor: 'rgb(99, 102, 241)', // Indigo-600
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgb(99, 102, 241)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
                     },
-                    tooltip: {
-                        backgroundColor: '#fff',
-                        titleColor: '#1e293b',
-                        bodyColor: '#0f172a',
-                        borderColor: '#e2e8f0',
-                        borderWidth: 1,
-                        cornerRadius: 8,
-                        padding: 10,
-                        callbacks: {
-                            title: (tooltipItem) => tooltipItem[0].label,
-                            label: (tooltipItem) => `Weight: ${tooltipItem.raw} kg`
+                    {
+                        label: 'Last Checked Weight',
+                        data: lastWeights,
+                        borderColor: 'rgb(249, 115, 22)', // Orange-500
+                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgb(249, 115, 22)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                font: { size: 14 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#fff',
+                            titleColor: '#1e293b',
+                            bodyColor: '#0f172a',
+                            borderColor: '#e2e8f0',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 10,
+                            callbacks: {
+                                title: (tooltipItem) => `Date: ${tooltipItem[0].label}`,
+                                label: (tooltipItem) => {
+                                    const datasetIndex = tooltipItem.datasetIndex;
+                                    const value = tooltipItem.raw;
+                                    const label = datasetIndex === 0 ? 'First Checked' : 'Last Checked';
+                                    return `${label}: ${value} kg`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                color: '#475569',
+                                font: { size: 14, weight: 'bold' }
+                            },
+                            grid: { color: '#e2e8f0' },
+                            ticks: { color: '#64748b' }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Weight (kg)',
+                                color: '#475569',
+                                font: { size: 14, weight: 'bold' }
+                            },
+                            grid: { color: '#e2e8f0' },
+                            ticks: { color: '#64748b' }
                         }
                     }
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Day',
-                            color: '#475569',
-                            font: { size: 14, weight: 'bold' }
-                        },
-                        grid: { color: '#e2e8f0' },
-                        ticks: { color: '#64748b' }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Weight (kg)',
-                            color: '#475569',
-                            font: { size: 14, weight: 'bold' }
-                        },
-                        grid: { color: '#e2e8f0' },
-                        ticks: { color: '#64748b' }
-                    }
                 }
-            }
-        });
+            });
+        }
+        
+        // Initial chart rendering
+        document.addEventListener('DOMContentLoaded', renderChart);
 
         // Get the input and button elements
-        const newWeightInput = document.getElementById('newWeightInput');
+        const dateInput = document.getElementById('dateInput');
+        const firstWeightInput = document.getElementById('firstWeightInput');
+        const lastWeightInput = document.getElementById('lastWeightInput');
         const addWeightButton = document.getElementById('addWeightButton');
+        const undoButton = document.getElementById('undoButton');
 
         // Function to add a new weight entry and update the chart
         function addWeight() {
-            const newWeight = parseFloat(newWeightInput.value);
-            if (!isNaN(newWeight)) {
-                // Add the new weight to the data array
-                weightData.push(newWeight);
-                // Update the labels
-                labels.push(`Day ${labels.length + 1}`);
+            const date = dateInput.value;
+            const firstWeight = parseFloat(firstWeightInput.value);
+            const lastWeight = parseFloat(lastWeightInput.value) || firstWeight;
 
-                // Update the chart data and re-render it
-                weightChart.data.labels = labels;
-                weightChart.data.datasets[0].data = weightData;
-                weightChart.update();
+            if (date && !isNaN(firstWeight)) {
+                parsedData.push({
+                    date: date,
+                    firstWeight: firstWeight,
+                    lastWeight: lastWeight
+                });
+                renderChart();
 
-                // Clear the input field
-                newWeightInput.value = '';
+                // Clear the input fields
+                dateInput.value = '';
+                firstWeightInput.value = '';
+                lastWeightInput.value = '';
+            } else {
+                alert('Please enter a valid date and at least the first weight.');
             }
         }
 
-        // Add event listeners for both button click and 'Enter' key press
+        // Function to undo the last entry
+        function undoLast() {
+            if (parsedData.length > 0) {
+                parsedData.pop();
+                renderChart();
+            }
+        }
+
+        // Add event listeners
         addWeightButton.addEventListener('click', addWeight);
-        newWeightInput.addEventListener('keypress', (event) => {
+        undoButton.addEventListener('click', undoLast);
+        document.addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
                 addWeight();
             }
         });
-
+        
     </script>
-
 </body>
 </html>
