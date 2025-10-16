@@ -15,10 +15,8 @@
     header{ padding:24px 20px 10px; text-align:center; }
     h1{ margin:0; font-size:clamp(22px,3vw,32px); font-weight:800; letter-spacing:0.2px; }
     .sub{ color:var(--muted); font-size:14px; margin-top:6px; }
-    .wrap{ max-width:1100px; margin:0 auto; padding:16px; }
+    .wrap{ max-width:1600px; margin:0 auto; padding:16px; }
     .card{ background:rgba(17,24,39,.7); border:1px solid rgba(148,163,184,.15); box-shadow:0 10px 30px rgba(0,0,0,.25); border-radius:18px; padding:18px; }
-    .grid{ display:grid; gap:16px; }
-    @media(min-width:960px){ .grid{ grid-template-columns: 1.1fr .9fr; } }
     .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center }
     label{ font-size:12px; color:var(--muted); }
     input[type="date"], input[type="number"], input[type="file"]{
@@ -30,22 +28,19 @@
     .btn-primary{ background:var(--accent); color:#052e16; }
     .btn-ghost{ background:transparent; color:var(--text); border:1px solid rgba(148,163,184,.25); }
     .btn-danger{ background:#ef4444; color:white; }
-    .btn:disabled{ opacity:.6; cursor:not-allowed }
     table{ width:100%; border-collapse:collapse; margin-top:12px; }
     th,td{ padding:10px 8px; text-align:left; border-bottom:1px dashed rgba(148,163,184,.2); font-size:14px }
     th{ color:var(--muted); font-weight:600; }
-    .pill{ display:inline-block; padding:2px 10px; border-radius:999px; background:rgba(34,197,94,.15); color:#86efac; font-size:12px; }
-    .footer{ text-align:center; margin-top:20px; padding:10px; color:var(--muted); font-size:14px; overflow:hidden; white-space:nowrap; }
-    .marquee { display:inline-block; animation: move 10s linear infinite; }
-    @keyframes move { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-    .hint{ color:var(--muted); font-size:12px }
-    .inline-actions{ display:flex; gap:8px }
-    .toast{ position:fixed; right:16px; bottom:16px; background:#111827; color:var(--text); border:1px solid rgba(148,163,184,.25); padding:10px 14px; border-radius:12px; opacity:0; transform:translateY(8px); transition:.25s; }
-    .toast.show{ opacity:1; transform:translateY(0); }
-    .kpi{ display:flex; gap:16px; flex-wrap:wrap; margin-top:10px }
-    .kpi .card{ flex:1; min-width:180px; }
+    .kpi{ display:grid; grid-template-columns: repeat(4, minmax(160px,1fr)); gap:16px; margin-top:16px }
+    .kpi .item{ background:rgba(17,24,39,.65); border:1px solid rgba(148,163,184,.15); border-radius:16px; padding:14px 16px; }
     .kpi h3{ margin:0; font-size:12px; color:var(--muted) }
     .kpi p{ margin:6px 0 0; font-weight:800; font-size:22px }
+    .footer{ text-align:center; margin-top:26px; padding:10px; color:var(--muted); font-size:14px; overflow:hidden; white-space:nowrap; }
+    .marquee { display:inline-block; animation: move 12s linear infinite; }
+    @keyframes move { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+    /* Chart area full-width and tall enough */
+    #chartWrap{ width:100%; height:420px; }
+    #chart{ width:100% !important; height:100% !important; display:block; }
   </style>
 </head>
 <body>
@@ -54,34 +49,28 @@
     <div class="sub">Interactive tracker • Edit entries • Export CSV • Visualize trends</div>
   </header>
 
-  <div class="wrap grid">
+  <div class="wrap">
+    <!-- Full-width chart card -->
     <section class="card">
-      <h2 style="margin:6px 0 10px;font-size:16px">Progress Graph</h2>
-      <canvas id="chart" height="120"></canvas>
+      <h2 style="margin:6px 0 10px;font-size:18px">Progress Graph</h2>
+      <div id="chartWrap"><canvas id="chart"></canvas></div>
       <div class="kpi">
-        <div class="card">
-          <h3>Latest</h3>
-          <p id="kpi-latest">–</p>
-        </div>
-        <div class="card">
-          <h3>Change (30d)</h3>
-          <p id="kpi-chg">–</p>
-        </div>
-        <div class="card">
-          <h3>Average (30d)</h3>
-          <p id="kpi-avg">–</p>
-        </div>
+        <div class="item"><h3>Latest</h3><p id="kpi-latest">–</p></div>
+        <div class="item"><h3>Change (30d)</h3><p id="kpi-chg30">–</p></div>
+        <div class="item"><h3>Average (30d)</h3><p id="kpi-avg30">–</p></div>
+        <div class="item"><h3>Change (start → today)</h3><p id="kpi-chgAll">–</p></div>
       </div>
     </section>
 
+    <!-- Manage entries BELOW the chart -->
     <section class="card">
       <h2 style="margin:6px 0 10px;font-size:16px">Manage Entries</h2>
       <div class="row">
-        <div style="flex:1 1 180px">
+        <div style="flex:1 1 220px">
           <label for="date">Date</label>
           <input type="date" id="date" />
         </div>
-        <div style="flex:1 1 140px">
+        <div style="flex:1 1 180px">
           <label for="weight">Weight (kg)</label>
           <input type="number" id="weight" inputmode="decimal" step="0.1" placeholder="e.g., 78.6" />
         </div>
@@ -94,38 +83,34 @@
         <button class="btn btn-ghost" id="btn-import">Import CSV</button>
         <button class="btn btn-ghost" id="btn-export">Download CSV</button>
       </div>
-      <div class="hint" style="margin-top:8px">Tip: Click a row in the table to load it for editing.</div>
+      <div class="sub" style="margin-top:8px">Tip: Click a row in the table to load it for editing.</div>
       <table id="tbl">
         <thead><tr><th>Date</th><th>Weight (kg)</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
   </div>
+
   <div class="footer"><div class="marquee">Made with ❤️ by Jeevika Chella Thambi</div></div>
 
-  <div id="toast" class="toast">Saved</div>
-
   <script>
-    // --- Initial data injected from your CSV ---
+    // Data (preloaded from your CSV)
     const initialData = JSON.parse(String.raw`[{"date": "2025-05-09", "weight": 76.8}, {"date": "2025-05-10", "weight": 76.8}, {"date": "2025-05-11", "weight": 76.8}, {"date": "2025-05-12", "weight": 75.6}, {"date": "2025-05-13", "weight": 77.6}, {"date": "2025-05-14", "weight": 78.0}, {"date": "2025-05-15", "weight": 77.0}, {"date": "2025-05-16", "weight": 77.6}, {"date": "2025-05-17", "weight": 76.4}, {"date": "2025-05-18", "weight": 76.4}, {"date": "2025-05-19", "weight": 76.6}, {"date": "2025-05-20", "weight": 76.6}, {"date": "2025-05-21", "weight": 76.6}, {"date": "2025-05-22", "weight": 76.6}, {"date": "2025-05-23", "weight": 76.6}, {"date": "2025-05-24", "weight": 76.6}, {"date": "2025-05-25", "weight": 76.6}, {"date": "2025-05-26", "weight": 76.6}, {"date": "2025-05-27", "weight": 76.6}, {"date": "2025-05-28", "weight": 77.4}, {"date": "2025-05-29", "weight": 77.4}, {"date": "2025-05-30", "weight": 78.4}, {"date": "2025-05-31", "weight": 78.4}, {"date": "2025-06-01", "weight": 78.4}, {"date": "2025-06-02", "weight": 77.7}, {"date": "2025-06-03", "weight": 78.2}, {"date": "2025-06-04", "weight": 78.8}, {"date": "2025-06-05", "weight": 79.1}, {"date": "2025-06-06", "weight": 79.4}, {"date": "2025-06-07", "weight": 79.4}, {"date": "2025-06-08", "weight": 79.4}, {"date": "2025-06-09", "weight": 79.4}, {"date": "2025-06-10", "weight": 78.4}, {"date": "2025-06-11", "weight": 78.4}, {"date": "2025-06-12", "weight": 78.4}, {"date": "2025-06-13", "weight": 78.4}, {"date": "2025-06-14", "weight": 78.4}, {"date": "2025-06-15", "weight": 78.4}, {"date": "2025-06-16", "weight": 78.4}, {"date": "2025-06-17", "weight": 78.4}, {"date": "2025-06-18", "weight": 78.4}, {"date": "2025-06-19", "weight": 78.4}, {"date": "2025-06-20", "weight": 78.4}, {"date": "2025-06-21", "weight": 78.5}, {"date": "2025-06-22", "weight": 78.5}, {"date": "2025-06-23", "weight": 78.5}, {"date": "2025-06-24", "weight": 78.5}, {"date": "2025-06-25", "weight": 78.5}, {"date": "2025-06-26", "weight": 77.8}, {"date": "2025-06-27", "weight": 78.4}, {"date": "2025-06-28", "weight": 78.6}, {"date": "2025-06-29", "weight": 78.6}, {"date": "2025-06-30", "weight": 78.4}, {"date": "2025-07-01", "weight": 78.9}, {"date": "2025-07-02", "weight": 78.6}, {"date": "2025-07-03", "weight": 78.6}, {"date": "2025-07-04", "weight": 78.8}, {"date": "2025-07-05", "weight": 79.0}, {"date": "2025-07-06", "weight": 78.4}, {"date": "2025-07-07", "weight": 78.8}, {"date": "2025-07-08", "weight": 80.3}, {"date": "2025-07-09", "weight": 80.8}, {"date": "2025-07-10", "weight": 80.6}, {"date": "2025-07-11", "weight": 80.6}, {"date": "2025-07-12", "weight": 81.4}, {"date": "2025-07-13", "weight": 81.4}, {"date": "2025-07-14", "weight": 81.4}, {"date": "2025-07-15", "weight": 81.4}, {"date": "2025-07-16", "weight": 81.4}, {"date": "2025-07-17", "weight": 81.4}, {"date": "2025-07-18", "weight": 81.4}, {"date": "2025-07-19", "weight": 81.2}, {"date": "2025-07-20", "weight": 81.2}, {"date": "2025-07-21", "weight": 80.8}, {"date": "2025-07-22", "weight": 82.4}, {"date": "2025-07-23", "weight": 82.0}, {"date": "2025-07-24", "weight": 82.0}, {"date": "2025-07-25", "weight": 83.2}, {"date": "2025-07-26", "weight": 82.4}, {"date": "2025-07-27", "weight": 82.4}, {"date": "2025-07-28", "weight": 82.2}, {"date": "2025-07-29", "weight": 82.8}, {"date": "2025-07-30", "weight": 82.4}, {"date": "2025-07-31", "weight": 83.4}, {"date": "2025-08-01", "weight": 81.2}, {"date": "2025-08-02", "weight": 81.2}, {"date": "2025-08-03", "weight": 81.2}, {"date": "2025-08-04", "weight": 81.2}, {"date": "2025-08-05", "weight": 83.2}, {"date": "2025-08-06", "weight": 83.2}, {"date": "2025-08-07", "weight": 83.2}, {"date": "2025-08-08", "weight": 82.8}, {"date": "2025-08-09", "weight": 82.8}, {"date": "2025-08-10", "weight": 82.8}, {"date": "2025-08-11", "weight": 83.2}, {"date": "2025-08-12", "weight": 83.2}, {"date": "2025-08-13", "weight": 83.2}, {"date": "2025-08-14", "weight": 83.2}, {"date": "2025-08-15", "weight": 83.2}, {"date": "2025-08-16", "weight": 83.0}, {"date": "2025-08-17", "weight": 83.0}, {"date": "2025-08-18", "weight": 82.2}, {"date": "2025-08-19", "weight": 83.0}, {"date": "2025-08-20", "weight": 83.0}, {"date": "2025-08-21", "weight": 82.2}, {"date": "2025-08-22", "weight": 82.8}, {"date": "2025-08-23", "weight": 82.8}, {"date": "2025-08-24", "weight": 82.8}, {"date": "2025-08-25", "weight": 82.8}, {"date": "2025-08-26", "weight": 82.8}, {"date": "2025-08-27", "weight": 82.8}, {"date": "2025-08-28", "weight": 82.8}, {"date": "2025-08-29", "weight": 82.8}, {"date": "2025-08-30", "weight": 82.8}, {"date": "2025-08-31", "weight": 82.8}, {"date": "2025-09-01", "weight": 82.2}, {"date": "2025-09-02", "weight": 82.8}, {"date": "2025-09-03", "weight": 82.8}, {"date": "2025-09-04", "weight": 82.2}, {"date": "2025-09-05", "weight": 82.8}, {"date": "2025-09-06", "weight": 82.8}, {"date": "2025-09-07", "weight": 82.0}, {"date": "2025-09-08", "weight": 82.0}, {"date": "2025-09-09", "weight": 82.0}, {"date": "2025-09-10", "weight": 82.8}, {"date": "2025-09-11", "weight": 82.8}, {"date": "2025-09-12", "weight": 82.8}, {"date": "2025-09-13", "weight": 82.8}, {"date": "2025-09-14", "weight": 82.8}, {"date": "2025-09-15", "weight": 83.0}, {"date": "2025-09-16", "weight": 82.4}, {"date": "2025-09-17", "weight": 83.4}, {"date": "2025-09-18", "weight": 83.0}, {"date": "2025-09-19", "weight": 83.0}, {"date": "2025-09-20", "weight": 83.0}, {"date": "2025-09-21", "weight": 83.0}, {"date": "2025-09-22", "weight": 82.6}, {"date": "2025-09-23", "weight": 83.6}, {"date": "2025-09-24", "weight": 82.8}, {"date": "2025-09-25", "weight": 83.0}, {"date": "2025-09-26", "weight": 83.4}, {"date": "2025-09-27", "weight": 83.4}, {"date": "2025-09-28", "weight": 83.4}, {"date": "2025-09-29", "weight": 83.4}, {"date": "2025-09-30", "weight": 83.4}, {"date": "2025-10-01", "weight": 83.6}, {"date": "2025-10-02", "weight": 83.6}, {"date": "2025-10-03", "weight": 83.6}, {"date": "2025-10-04", "weight": 83.6}, {"date": "2025-10-05", "weight": 83.6}, {"date": "2025-10-06", "weight": 83.6}, {"date": "2025-10-07", "weight": 83.6}, {"date": "2025-10-08", "weight": 83.4}, {"date": "2025-10-09", "weight": 83.4}, {"date": "2025-10-10", "weight": 83.4}, {"date": "2025-10-11", "weight": 83.4}, {"date": "2025-10-12", "weight": 83.4}, {"date": "2025-10-13", "weight": 83.4}, {"date": "2025-10-14", "weight": 83.4}, {"date": "2025-10-15", "weight": 84.0}, {"date": "2025-10-16", "weight": 84.6}]`);
 
-    // --- State ---
-    const state = new Map(); // date(YYYY-MM-DD) -> weight (Number)
-    for (const r of initialData) state.set(r.date, Number(r.weight));
+    // State
+    const state = new Map(initialData.map(r=>[r.date, Number(r.weight)]));
 
     const dateEl = document.getElementById('date');
     const weightEl = document.getElementById('weight');
     const tblBody = document.querySelector('#tbl tbody');
-    const toastEl = document.getElementById('toast');
 
-    // default selected date = today if within range, else last existing
-    dateEl.value = (()=>{ const d = new Date(); const iso=d.toISOString().slice(0,10); return iso; })();
+    dateEl.value = new Date().toISOString().slice(0,10);
 
-    // --- Chart ---
+    // Helpers
+    function sortedEntries(){ return Array.from(state.entries()).sort((a,b)=>a[0].localeCompare(b[0])); }
+
+    // Render chart
     let chart;
-    function sortedEntries(){
-      return Array.from(state.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
-    }
     function renderChart(){
       const rows = sortedEntries();
       const labels = rows.map(([d])=>d);
@@ -136,8 +121,9 @@
         type:'line',
         data:{ labels, datasets:[{ label:'Weight (kg)', data, tension:.25, borderWidth:2, pointRadius:2, fill:false }]},
         options:{
+          responsive:true, maintainAspectRatio:false,
           scales:{
-            x:{ ticks:{ color:'#cbd5e1' }, grid:{ color:'rgba(148,163,184,.15)' } },
+            x:{ ticks:{ color:'#cbd5e1', maxRotation:45, minRotation:45 }, grid:{ color:'rgba(148,163,184,.15)' } },
             y:{ ticks:{ color:'#cbd5e1' }, grid:{ color:'rgba(148,163,184,.12)' } }
           },
           plugins:{ legend:{ labels:{ color:'#cbd5e1' } } },
@@ -147,26 +133,28 @@
     }
 
     function updateKPIs(rows){
-      const latestEl = document.getElementById('kpi-latest');
-      const chgEl = document.getElementById('kpi-chg');
-      const avgEl = document.getElementById('kpi-avg');
-      if (!rows.length){ latestEl.textContent = chgEl.textContent = avgEl.textContent = '–'; return; }
+      const elLatest = document.getElementById('kpi-latest');
+      const elChg30  = document.getElementById('kpi-chg30');
+      const elAvg30  = document.getElementById('kpi-avg30');
+      const elChgAll = document.getElementById('kpi-chgAll');
+      if (!rows.length){ elLatest.textContent = elChg30.textContent = elAvg30.textContent = elChgAll.textContent = '–'; return; }
       const latest = rows[rows.length-1][1];
-      latestEl.textContent = latest.toFixed(1)+ ' kg';
-      // last 30 days
+      elLatest.textContent = latest.toFixed(1) + ' kg';
+      // 30d window
       const cutoff = new Date(rows[rows.length-1][0]); cutoff.setDate(cutoff.getDate()-30);
       const recent = rows.filter(([d])=> new Date(d) >= cutoff);
       if (recent.length){
         const change = recent[recent.length-1][1] - recent[0][1];
         const avg = recent.reduce((s,[,w])=>s+w,0)/recent.length;
-        chgEl.textContent = (change>=0?'+':'') + change.toFixed(1) + ' kg';
-        avgEl.textContent = avg.toFixed(1) + ' kg';
-      } else {
-        chgEl.textContent = avgEl.textContent = '–';
-      }
+        elChg30.textContent = (change>=0?'+':'') + change.toFixed(1) + ' kg';
+        elAvg30.textContent = avg.toFixed(1) + ' kg';
+      } else { elChg30.textContent = elAvg30.textContent = '–'; }
+      // Start → today
+      const allChange = rows[rows.length-1][1] - rows[0][1];
+      elChgAll.textContent = (allChange>=0?'+':'') + allChange.toFixed(1) + ' kg';
     }
 
-    // --- Table ---
+    // Table
     function renderTable(){
       const rows = sortedEntries();
       tblBody.innerHTML = '';
@@ -175,22 +163,26 @@
         const td1 = document.createElement('td'); td1.textContent = d;
         const td2 = document.createElement('td'); td2.textContent = Number(w).toFixed(1);
         const td3 = document.createElement('td');
-        const actions = document.createElement('div'); actions.className='inline-actions';
         const btnEdit = Object.assign(document.createElement('button'), { className:'btn btn-ghost', textContent:'Edit' });
         const btnRm = Object.assign(document.createElement('button'), { className:'btn btn-danger', textContent:'Delete' });
-        btnEdit.onclick = ()=>{ dateEl.value=d; weightEl.value=w; dateEl.scrollIntoView({behavior:'smooth', block:'center'}); };
+        btnEdit.onclick = ()=>{ dateEl.value=d; weightEl.value=w; };
         btnRm.onclick = ()=>{ if(confirm('Delete entry for '+d+'?')){ state.delete(d); rerender('Deleted'); } };
-        actions.append(btnEdit, btnRm); td3.append(actions);
+        td3.append(btnEdit, btnRm);
         tr.append(td1,td2,td3); tr.style.cursor='pointer';
         tr.onclick = (e)=>{ if(e.target.tagName==='BUTTON') return; dateEl.value=d; weightEl.value=w; };
         tblBody.append(tr);
       }
     }
 
-    function rerender(msg){ renderChart(); renderTable(); if(msg) toast(msg); }
-    function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'), 1400); }
+    function rerender(msg){ renderChart(); renderTable(); if(msg) showToast(msg); }
+    function showToast(msg){
+      let t = document.getElementById('toast');
+      if (!t){ t = document.createElement('div'); t.id='toast'; t.style.position='fixed'; t.style.right='16px'; t.style.bottom='16px'; t.style.background='#111827'; t.style.color='var(--text)'; t.style.border='1px solid rgba(148,163,184,.25)'; t.style.padding='10px 14px'; t.style.borderRadius='12px'; document.body.appendChild(t); }
+      t.textContent = msg; t.style.opacity='1'; t.style.transform='translateY(0)';
+      setTimeout(()=>{ t.style.opacity='0'; }, 1200);
+    }
 
-    // --- CRUD ---
+    // CRUD
     document.getElementById('btn-add').onclick = ()=>{
       const d = dateEl.value; const w = parseFloat(String(weightEl.value).replace(',', '.'));
       if (!d){ alert('Choose a date.'); return; }
@@ -204,12 +196,11 @@
       if (confirm('Delete '+d+'?')){ state.delete(d); rerender('Deleted'); }
     };
 
-    // --- CSV Import/Export ---
+    // CSV Import/Export
     function toCSV(){
       const rows = sortedEntries();
       const lines = ['Date,Weight'];
       for (const [d,w] of rows){
-        // convert to dd-mm-YYYY like original export
         const [Y,M,D] = d.split('-');
         lines.push(`${D}-${M}-${Y},${Number(w).toFixed(1)}`);
       }
@@ -242,9 +233,7 @@
             } else if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)){
               const [dd,mm,yyyy] = dateStr.split('-');
               d = `${yyyy}-${mm}-${dd}`;
-            } else {
-              continue; // skip unknown format
-            }
+            } else { continue; }
             const w = parseFloat(String(weightStr).replace(',', '.'));
             if (Number.isFinite(w)) { state.set(d, Number(w.toFixed(1))); count++; }
           }
@@ -254,7 +243,7 @@
       reader.readAsText(f);
     };
 
-    // Initialize UI
+    // Initial render
     rerender();
   </script>
 </body>
