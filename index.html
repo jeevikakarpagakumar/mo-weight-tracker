@@ -1,455 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mohesh's Weight Tracker</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN for the graph -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 1rem;
-        }
-        #weightChart {
-            max-height: 400px;
-            width: 100% !important;
-            height: auto !important;
-        }
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: none; /* Hidden by default */
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 1rem;
-            text-align: center;
-            max-width: 400px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mohesh's Weight Journey</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root { --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22c55e; }
+    *{ box-sizing:border-box }
+    body{ margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto; background:linear-gradient(180deg,#0b1220,#0f172a 20%,#0f172a); color:var(--text); }
+    header{ padding:24px 20px 10px; text-align:center; }
+    h1{ margin:0; font-size:clamp(22px,3vw,32px); font-weight:800; letter-spacing:0.2px; }
+    .sub{ color:var(--muted); font-size:14px; margin-top:6px; }
+    .wrap{ max-width:1100px; margin:0 auto; padding:16px; }
+    .card{ background:rgba(17,24,39,.7); border:1px solid rgba(148,163,184,.15); box-shadow:0 10px 30px rgba(0,0,0,.25); border-radius:18px; padding:18px; }
+    .grid{ display:grid; gap:16px; }
+    @media(min-width:960px){ .grid{ grid-template-columns: 1.1fr .9fr; } }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center }
+    label{ font-size:12px; color:var(--muted); }
+    input[type="date"], input[type="number"], input[type="file"]{
+      background:#0b1220; color:var(--text); border:1px solid rgba(148,163,184,.25);
+      padding:10px 12px; border-radius:10px; outline:none; width:100%;
+    }
+    input[type="number"]{ appearance:textfield; }
+    .btn{ border:none; padding:10px 14px; border-radius:12px; font-weight:600; cursor:pointer; }
+    .btn-primary{ background:var(--accent); color:#052e16; }
+    .btn-ghost{ background:transparent; color:var(--text); border:1px solid rgba(148,163,184,.25); }
+    .btn-danger{ background:#ef4444; color:white; }
+    .btn:disabled{ opacity:.6; cursor:not-allowed }
+    table{ width:100%; border-collapse:collapse; margin-top:12px; }
+    th,td{ padding:10px 8px; text-align:left; border-bottom:1px dashed rgba(148,163,184,.2); font-size:14px }
+    th{ color:var(--muted); font-weight:600; }
+    .pill{ display:inline-block; padding:2px 10px; border-radius:999px; background:rgba(34,197,94,.15); color:#86efac; font-size:12px; }
+    .footer{ display:flex; gap:10px; flex-wrap:wrap; justify-content:space-between; align-items:center; margin-top:12px }
+    .hint{ color:var(--muted); font-size:12px }
+    .inline-actions{ display:flex; gap:8px }
+    .toast{ position:fixed; right:16px; bottom:16px; background:#111827; color:var(--text); border:1px solid rgba(148,163,184,.25); padding:10px 14px; border-radius:12px; opacity:0; transform:translateY(8px); transition:.25s; }
+    .toast.show{ opacity:1; transform:translateY(0); }
+    .kpi{ display:flex; gap:16px; flex-wrap:wrap; margin-top:10px }
+    .kpi .card{ flex:1; min-width:180px; }
+    .kpi h3{ margin:0; font-size:12px; color:var(--muted) }
+    .kpi p{ margin:6px 0 0; font-weight:800; font-size:22px }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex items-center justify-center p-4">
+<body>
+  <header>
+    <h1>Mohesh's Weight Journey</h1>
+    <div class="sub">Interactive tracker • Edit entries • Export CSV • Visualize trends</div>
+  </header>
 
-    <div class="container bg-white rounded-2xl shadow-xl p-6 md:p-10 space-y-8">
-        <h1 class="text-3xl md:text-4xl font-extrabold text-center">Mohesh's Weight Tracker</h1>
-
-        <!-- Chart Container -->
-        <div class="bg-gray-50 rounded-xl p-4 md:p-6 shadow-inner">
-            <canvas id="weightChart"></canvas>
+  <div class="wrap grid">
+    <section class="card">
+      <h2 style="margin:6px 0 10px;font-size:16px">Progress Graph</h2>
+      <canvas id="chart" height="120"></canvas>
+      <div class="kpi">
+        <div class="card">
+          <h3>Latest</h3>
+          <p id="kpi-latest">–</p>
         </div>
-        
-        <!-- Interactive Input Section -->
-        <div class="flex flex-col sm:flex-row flex-wrap justify-center items-center gap-4">
-            <!-- Date Input -->
-            <div class="w-full sm:w-auto flex-grow-0">
-                <label for="dateInput" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                <input 
-                    id="dateInput" 
-                    type="date" 
-                    class="w-full px-4 py-3 text-center rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-                />
-            </div>
-            <!-- First Weight Input -->
-            <div class="w-full sm:w-auto flex-grow">
-                <label for="firstWeightInput" class="block text-sm font-medium text-gray-700 mb-1">First Checked Weight (kg)</label>
-                <input 
-                    id="firstWeightInput" 
-                    type="number" 
-                    placeholder="e.g., 78.4"
-                    class="w-full px-4 py-3 text-center rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-                />
-            </div>
-            <!-- Last Weight Input -->
-            <div class="w-full sm:w-auto flex-grow">
-                <label for="lastWeightInput" class="block text-sm font-medium text-gray-700 mb-1">Last Checked Weight (kg)</label>
-                <input 
-                    id="lastWeightInput" 
-                    type="number" 
-                    placeholder="e.g., 78.6"
-                    class="w-full px-4 py-3 text-center rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-                />
-            </div>
-            <!-- Action Buttons -->
-            <button 
-                id="saveButton"
-                class="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200"
-            >
-                Save
-            </button>
-            <button 
-                id="exportButton"
-                class="w-full sm:w-auto px-8 py-3 bg-green-600 text-white font-semibold rounded-xl shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200"
-            >
-                Export to CSV
-            </button>
+        <div class="card">
+          <h3>Change (30d)</h3>
+          <p id="kpi-chg">–</p>
         </div>
-
-        <!-- Data Display Section -->
-        <div class="mt-8">
-            <h2 class="text-2xl font-bold mb-4 text-center">Your Entries</h2>
-            <div id="dataList" class="space-y-2">
-                <!-- Data will be rendered here -->
-            </div>
+        <div class="card">
+          <h3>Average (30d)</h3>
+          <p id="kpi-avg">–</p>
         </div>
-    </div>
+      </div>
+    </section>
 
-    <!-- Custom Modal for alerts -->
-    <div id="alertModal" class="modal">
-        <div class="modal-content">
-            <p id="modalMessage" class="text-lg font-medium text-slate-800 mb-4"></p>
-            <button id="closeModalButton" class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700">OK</button>
+    <section class="card">
+      <h2 style="margin:6px 0 10px;font-size:16px">Manage Entries</h2>
+      <div class="row">
+        <div style="flex:1 1 180px">
+          <label for="date">Date</label>
+          <input type="date" id="date" />
         </div>
-    </div>
+        <div style="flex:1 1 140px">
+          <label for="weight">Weight (kg)</label>
+          <input type="number" id="weight" inputmode="decimal" step="0.1" placeholder="e.g., 78.6" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn btn-primary" id="btn-add">Add / Update</button>
+        <button class="btn btn-danger" id="btn-del">Delete</button>
+        <div style="flex:1"></div>
+        <input type="file" id="file" accept=".csv"/>
+        <button class="btn btn-ghost" id="btn-import">Import CSV</button>
+        <button class="btn btn-ghost" id="btn-export">Download CSV</button>
+      </div>
+      <div class="hint" style="margin-top:8px">Tip: Click a row in the table to load it for editing.</div>
+      <table id="tbl">
+        <thead><tr><th>Date</th><th>Weight (kg)</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
 
-    <script>
-        // Raw dataset provided by the user
-        const rawDataString = `
-09.05E  76.8 
-10.05E  77.0 76.8
-12.05M 76.0 75.6
-13.05E  77.6
-14.05E  77.8 78.0
-15.05E  77.2 77.0
-16.05E  77.8 77.6
-17.05E  76.8 76.4
-19.05M 76.8 76.6
-28.05E  77.2 77.4
-30.05E  78.0 78.4
-01.06E No food
-02.06E  77.7
-03.06E  78.4 78.2
-04.06E  79.0 78.8
-05.06E  79.4 79.1
-06.06E  79.2 79.4
-10.06M 78.6 78.4
-12.06M 78.6 78.4
-21.06M 78.5 78.5
-26.06M 77.6 77.8
-27.06M 78.4 
-28.06M 79.0 78.6
-30.06M 78.4
-01.07M 79.0 78.9
-02.07M 78.8 78.6
-03.07M 78.6
-04.07M 79.0 78.8
-05.07M 79.2 79.0
-06.07M 78.6 78.4
-07.07M 79.0 78.8 
-08.07M 80.4 80.3
-09.07A 80.8
-10.07A 80.8 80.6
-11.07A 80.8 80.6
-12.07A 81.4
-14.07A 81.6 81.4
-19.07A 81.6 81.2
-21.07A 81.3 80.8
-22.07A 82.4
-23.07A 82.4 82.0
-24.07A 82.4 82.0
-25.07A 83.2
-26.07A 82.8 82.4
-28.07A 82.4 82.2
-29.07A 83.0 82.8
-30.07A 82.8 82.4
-31.07A 83.0 83.4
-        `;
+  <div id="toast" class="toast">Saved</div>
 
-        let parsedData = [];
+  <script>
+    // --- Initial data injected from your CSV ---
+    const initialData = JSON.parse(String.raw`[{"date": "2025-05-09", "weight": 76.8}, {"date": "2025-05-10", "weight": 76.8}, {"date": "2025-05-11", "weight": 76.8}, {"date": "2025-05-12", "weight": 75.6}, {"date": "2025-05-13", "weight": 77.6}, {"date": "2025-05-14", "weight": 78.0}, {"date": "2025-05-15", "weight": 77.0}, {"date": "2025-05-16", "weight": 77.6}, {"date": "2025-05-17", "weight": 76.4}, {"date": "2025-05-18", "weight": 76.4}, {"date": "2025-05-19", "weight": 76.6}, {"date": "2025-05-20", "weight": 76.6}, {"date": "2025-05-21", "weight": 76.6}, {"date": "2025-05-22", "weight": 76.6}, {"date": "2025-05-23", "weight": 76.6}, {"date": "2025-05-24", "weight": 76.6}, {"date": "2025-05-25", "weight": 76.6}, {"date": "2025-05-26", "weight": 76.6}, {"date": "2025-05-27", "weight": 76.6}, {"date": "2025-05-28", "weight": 77.4}, {"date": "2025-05-29", "weight": 77.4}, {"date": "2025-05-30", "weight": 78.4}, {"date": "2025-05-31", "weight": 78.4}, {"date": "2025-06-01", "weight": 78.4}, {"date": "2025-06-02", "weight": 77.7}, {"date": "2025-06-03", "weight": 78.2}, {"date": "2025-06-04", "weight": 78.8}, {"date": "2025-06-05", "weight": 79.1}, {"date": "2025-06-06", "weight": 79.4}, {"date": "2025-06-07", "weight": 79.4}, {"date": "2025-06-08", "weight": 79.4}, {"date": "2025-06-09", "weight": 79.4}, {"date": "2025-06-10", "weight": 78.4}, {"date": "2025-06-11", "weight": 78.4}, {"date": "2025-06-12", "weight": 78.4}, {"date": "2025-06-13", "weight": 78.4}, {"date": "2025-06-14", "weight": 78.4}, {"date": "2025-06-15", "weight": 78.4}, {"date": "2025-06-16", "weight": 78.4}, {"date": "2025-06-17", "weight": 78.4}, {"date": "2025-06-18", "weight": 78.4}, {"date": "2025-06-19", "weight": 78.4}, {"date": "2025-06-20", "weight": 78.4}, {"date": "2025-06-21", "weight": 78.5}, {"date": "2025-06-22", "weight": 78.5}, {"date": "2025-06-23", "weight": 78.5}, {"date": "2025-06-24", "weight": 78.5}, {"date": "2025-06-25", "weight": 78.5}, {"date": "2025-06-26", "weight": 77.8}, {"date": "2025-06-27", "weight": 78.4}, {"date": "2025-06-28", "weight": 78.6}, {"date": "2025-06-29", "weight": 78.6}, {"date": "2025-06-30", "weight": 78.4}, {"date": "2025-07-01", "weight": 78.9}, {"date": "2025-07-02", "weight": 78.6}, {"date": "2025-07-03", "weight": 78.6}, {"date": "2025-07-04", "weight": 78.8}, {"date": "2025-07-05", "weight": 79.0}, {"date": "2025-07-06", "weight": 78.4}, {"date": "2025-07-07", "weight": 78.8}, {"date": "2025-07-08", "weight": 80.3}, {"date": "2025-07-09", "weight": 80.8}, {"date": "2025-07-10", "weight": 80.6}, {"date": "2025-07-11", "weight": 80.6}, {"date": "2025-07-12", "weight": 81.4}, {"date": "2025-07-13", "weight": 81.4}, {"date": "2025-07-14", "weight": 81.4}, {"date": "2025-07-15", "weight": 81.4}, {"date": "2025-07-16", "weight": 81.4}, {"date": "2025-07-17", "weight": 81.4}, {"date": "2025-07-18", "weight": 81.4}, {"date": "2025-07-19", "weight": 81.2}, {"date": "2025-07-20", "weight": 81.2}, {"date": "2025-07-21", "weight": 80.8}, {"date": "2025-07-22", "weight": 82.4}, {"date": "2025-07-23", "weight": 82.0}, {"date": "2025-07-24", "weight": 82.0}, {"date": "2025-07-25", "weight": 83.2}, {"date": "2025-07-26", "weight": 82.4}, {"date": "2025-07-27", "weight": 82.4}, {"date": "2025-07-28", "weight": 82.2}, {"date": "2025-07-29", "weight": 82.8}, {"date": "2025-07-30", "weight": 82.4}, {"date": "2025-07-31", "weight": 83.4}, {"date": "2025-08-01", "weight": 81.2}, {"date": "2025-08-02", "weight": 81.2}, {"date": "2025-08-03", "weight": 81.2}, {"date": "2025-08-04", "weight": 81.2}, {"date": "2025-08-05", "weight": 83.2}, {"date": "2025-08-06", "weight": 83.2}, {"date": "2025-08-07", "weight": 83.2}, {"date": "2025-08-08", "weight": 82.8}, {"date": "2025-08-09", "weight": 82.8}, {"date": "2025-08-10", "weight": 82.8}, {"date": "2025-08-11", "weight": 83.2}, {"date": "2025-08-12", "weight": 83.2}, {"date": "2025-08-13", "weight": 83.2}, {"date": "2025-08-14", "weight": 83.2}, {"date": "2025-08-15", "weight": 83.2}, {"date": "2025-08-16", "weight": 83.0}, {"date": "2025-08-17", "weight": 83.0}, {"date": "2025-08-18", "weight": 82.2}, {"date": "2025-08-19", "weight": 83.0}, {"date": "2025-08-20", "weight": 83.0}, {"date": "2025-08-21", "weight": 82.2}, {"date": "2025-08-22", "weight": 82.8}, {"date": "2025-08-23", "weight": 82.8}, {"date": "2025-08-24", "weight": 82.8}, {"date": "2025-08-25", "weight": 82.8}, {"date": "2025-08-26", "weight": 82.8}, {"date": "2025-08-27", "weight": 82.8}, {"date": "2025-08-28", "weight": 82.8}, {"date": "2025-08-29", "weight": 82.8}, {"date": "2025-08-30", "weight": 82.8}, {"date": "2025-08-31", "weight": 82.8}, {"date": "2025-09-01", "weight": 82.2}, {"date": "2025-09-02", "weight": 82.8}, {"date": "2025-09-03", "weight": 82.8}, {"date": "2025-09-04", "weight": 82.2}, {"date": "2025-09-05", "weight": 82.8}, {"date": "2025-09-06", "weight": 82.8}, {"date": "2025-09-07", "weight": 82.0}, {"date": "2025-09-08", "weight": 82.0}, {"date": "2025-09-09", "weight": 82.0}, {"date": "2025-09-10", "weight": 82.8}, {"date": "2025-09-11", "weight": 82.8}, {"date": "2025-09-12", "weight": 82.8}, {"date": "2025-09-13", "weight": 82.8}, {"date": "2025-09-14", "weight": 82.8}, {"date": "2025-09-15", "weight": 83.0}, {"date": "2025-09-16", "weight": 82.4}, {"date": "2025-09-17", "weight": 83.4}, {"date": "2025-09-18", "weight": 83.0}, {"date": "2025-09-19", "weight": 83.0}, {"date": "2025-09-20", "weight": 83.0}, {"date": "2025-09-21", "weight": 83.0}, {"date": "2025-09-22", "weight": 82.6}, {"date": "2025-09-23", "weight": 83.6}, {"date": "2025-09-24", "weight": 82.8}, {"date": "2025-09-25", "weight": 83.0}, {"date": "2025-09-26", "weight": 83.4}, {"date": "2025-09-27", "weight": 83.4}, {"date": "2025-09-28", "weight": 83.4}, {"date": "2025-09-29", "weight": 83.4}, {"date": "2025-09-30", "weight": 83.4}, {"date": "2025-10-01", "weight": 83.6}, {"date": "2025-10-02", "weight": 83.6}, {"date": "2025-10-03", "weight": 83.6}, {"date": "2025-10-04", "weight": 83.6}, {"date": "2025-10-05", "weight": 83.6}, {"date": "2025-10-06", "weight": 83.6}, {"date": "2025-10-07", "weight": 83.6}, {"date": "2025-10-08", "weight": 83.4}, {"date": "2025-10-09", "weight": 83.4}, {"date": "2025-10-10", "weight": 83.4}, {"date": "2025-10-11", "weight": 83.4}, {"date": "2025-10-12", "weight": 83.4}, {"date": "2025-10-13", "weight": 83.4}, {"date": "2025-10-14", "weight": 83.4}, {"date": "2025-10-15", "weight": 84.0}, {"date": "2025-10-16", "weight": 84.6}]`);
 
-        // Function to parse the raw data string into a structured array
-        function parseData(dataString) {
-            const lines = dataString.trim().split('\n');
-            const data = [];
-            const currentYear = new Date().getFullYear();
-            lines.forEach(line => {
-                const parts = line.trim().split(/\s+/);
-                if (parts.length >= 2) {
-                    const datePart = parts[0].replace(/[AE]/, ''); // Remove 'A' or 'E'
-                    const [day, month] = datePart.split('.').map(Number);
-                    
-                    // Create a consistent date format (YYYY-MM-DD) for sorting and calendar input
-                    const date = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    
-                    const firstWeight = parseFloat(parts[1]);
-                    const lastWeight = parseFloat(parts[2]) || firstWeight; // Handle single weight case
+    // --- State ---
+    const state = new Map(); // date(YYYY-MM-DD) -> weight (Number)
+    for (const r of initialData) state.set(r.date, Number(r.weight));
 
-                    if (!isNaN(firstWeight)) {
-                        data.push({
-                            date: date,
-                            firstWeight: firstWeight,
-                            lastWeight: lastWeight
-                        });
-                    }
-                }
-            });
-            // Sort data by date
-            data.sort((a, b) => new Date(a.date) - new Date(b.date));
-            return data;
+    const dateEl = document.getElementById('date');
+    const weightEl = document.getElementById('weight');
+    const tblBody = document.querySelector('#tbl tbody');
+    const toastEl = document.getElementById('toast');
+
+    // default selected date = today if within range, else last existing
+    dateEl.value = (()=>{ const d = new Date(); const iso=d.toISOString().slice(0,10); return iso; })();
+
+    // --- Chart ---
+    let chart;
+    function sortedEntries(){
+      return Array.from(state.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+    }
+    function renderChart(){
+      const rows = sortedEntries();
+      const labels = rows.map(([d])=>d);
+      const data = rows.map(([,w])=>w);
+      const ctx = document.getElementById('chart');
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type:'line',
+        data:{ labels, datasets:[{ label:'Weight (kg)', data, tension:.25, borderWidth:2, pointRadius:2, fill:false }]},
+        options:{
+          scales:{
+            x:{ ticks:{ color:'#cbd5e1' }, grid:{ color:'rgba(148,163,184,.15)' } },
+            y:{ ticks:{ color:'#cbd5e1' }, grid:{ color:'rgba(148,163,184,.12)' } }
+          },
+          plugins:{ legend:{ labels:{ color:'#cbd5e1' } } },
         }
+      });
+      updateKPIs(rows);
+    }
 
-        // Initialize with parsed data
-        parsedData = parseData(rawDataString);
+    function updateKPIs(rows){
+      const latestEl = document.getElementById('kpi-latest');
+      const chgEl = document.getElementById('kpi-chg');
+      const avgEl = document.getElementById('kpi-avg');
+      if (!rows.length){ latestEl.textContent = chgEl.textContent = avgEl.textContent = '–'; return; }
+      const latest = rows[rows.length-1][1];
+      latestEl.textContent = latest.toFixed(1)+ ' kg';
+      // last 30 days
+      const cutoff = new Date(rows[rows.length-1][0]); cutoff.setDate(cutoff.getDate()-30);
+      const recent = rows.filter(([d])=> new Date(d) >= cutoff);
+      if (recent.length){
+        const change = recent[recent.length-1][1] - recent[0][1];
+        const avg = recent.reduce((s,[,w])=>s+w,0)/recent.length;
+        chgEl.textContent = (change>=0?'+':'') + change.toFixed(1) + ' kg';
+        avgEl.textContent = avg.toFixed(1) + ' kg';
+      } else {
+        chgEl.textContent = avgEl.textContent = '–';
+      }
+    }
 
-        // Get the canvas element and its context
-        const ctx = document.getElementById('weightChart').getContext('2d');
-        let weightChart;
+    // --- Table ---
+    function renderTable(){
+      const rows = sortedEntries();
+      tblBody.innerHTML = '';
+      for (const [d,w] of rows){
+        const tr = document.createElement('tr');
+        const td1 = document.createElement('td'); td1.textContent = d;
+        const td2 = document.createElement('td'); td2.textContent = Number(w).toFixed(1);
+        const td3 = document.createElement('td');
+        const actions = document.createElement('div'); actions.className='inline-actions';
+        const btnEdit = Object.assign(document.createElement('button'), { className:'btn btn-ghost', textContent:'Edit' });
+        const btnRm = Object.assign(document.createElement('button'), { className:'btn btn-danger', textContent:'Delete' });
+        btnEdit.onclick = ()=>{ dateEl.value=d; weightEl.value=w; dateEl.scrollIntoView({behavior:'smooth', block:'center'}); };
+        btnRm.onclick = ()=>{ if(confirm('Delete entry for '+d+'?')){ state.delete(d); rerender('Deleted'); } };
+        actions.append(btnEdit, btnRm); td3.append(actions);
+        tr.append(td1,td2,td3); tr.style.cursor='pointer';
+        tr.onclick = (e)=>{ if(e.target.tagName==='BUTTON') return; dateEl.value=d; weightEl.value=w; };
+        tblBody.append(tr);
+      }
+    }
 
-        // Function to render or update the chart
-        function renderChart() {
-            if (weightChart) {
-                weightChart.destroy();
-            }
+    function rerender(msg){ renderChart(); renderTable(); if(msg) toast(msg); }
+    function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'), 1400); }
 
-            const labels = parsedData.map(d => d.date);
-            const firstWeights = parsedData.map(d => d.firstWeight);
-            const lastWeights = parsedData.map(d => d.lastWeight);
+    // --- CRUD ---
+    document.getElementById('btn-add').onclick = ()=>{
+      const d = dateEl.value; const w = parseFloat(String(weightEl.value).replace(',', '.'));
+      if (!d){ alert('Choose a date.'); return; }
+      if (!Number.isFinite(w)){ alert('Enter a valid weight (kg).'); return; }
+      state.set(d, Number(w.toFixed(1)));
+      rerender('Saved');
+    };
+    document.getElementById('btn-del').onclick = ()=>{
+      const d = dateEl.value; if (!d){ alert('Choose a date.'); return; }
+      if (!state.has(d)){ alert('No entry for this date.'); return; }
+      if (confirm('Delete '+d+'?')){ state.delete(d); rerender('Deleted'); }
+    };
 
-            weightChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'First Checked Weight',
-                        data: firstWeights,
-                        borderColor: 'rgb(99, 102, 241)',
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.4,
-                        pointBackgroundColor: 'rgb(99, 102, 241)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 1,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
-                    },
-                    {
-                        label: 'Last Checked Weight',
-                        data: lastWeights,
-                        borderColor: 'rgb(249, 115, 22)',
-                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.4,
-                        pointBackgroundColor: 'rgb(249, 115, 22)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 1,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            labels: {
-                                font: { size: 14 }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: '#fff',
-                            titleColor: '#1e293b',
-                            bodyColor: '#0f172a',
-                            borderColor: '#e2e8f0',
-                            borderWidth: 1,
-                            cornerRadius: 8,
-                            padding: 10,
-                            callbacks: {
-                                title: (tooltipItem) => `Date: ${tooltipItem[0].label}`,
-                                label: (tooltipItem) => {
-                                    const datasetIndex = tooltipItem.datasetIndex;
-                                    const value = tooltipItem.raw;
-                                    const label = datasetIndex === 0 ? 'First Checked' : 'Last Checked';
-                                    return `${label}: ${value} kg`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Date',
-                                color: '#475569',
-                                font: { size: 14, weight: 'bold' }
-                            },
-                            grid: { color: '#e2e8f0' },
-                            ticks: { color: '#64748b' }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Weight (kg)',
-                                color: '#475569',
-                                font: { size: 14, weight: 'bold' }
-                            },
-                            grid: { color: '#e2e8f0' },
-                            ticks: { color: '#64748b' }
-                        }
-                    }
-                }
-            });
-        }
+    // --- CSV Import/Export ---
+    function toCSV(){
+      const rows = sortedEntries();
+      const lines = ['Date,Weight'];
+      for (const [d,w] of rows){
+        // convert to dd-mm-YYYY like original export
+        const [Y,M,D] = d.split('-');
+        lines.push(`${D}-${M}-${Y},${Number(w).toFixed(1)}`);
+      }
+      return lines.join('\n');
+    }
+    document.getElementById('btn-export').onclick = ()=>{
+      const csv = toCSV();
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='mohesh_weight_journey.csv'; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    };
 
-        // Function to render the data list
-        function renderDataList() {
-            const dataList = document.getElementById('dataList');
-            dataList.innerHTML = '';
-            parsedData.forEach((entry, index) => {
-                const listItem = document.createElement('div');
-                listItem.className = 'flex items-center justify-between bg-gray-100 p-3 rounded-lg shadow-sm';
-                const formattedDate = new Date(entry.date).toLocaleDateString();
-                listItem.innerHTML = `
-                    <div class="flex-grow">
-                        <span class="font-bold text-gray-900">${formattedDate}</span>: 
-                        <span class="text-sm text-gray-700">First: ${entry.firstWeight} kg, Last: ${entry.lastWeight} kg</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <button class="edit-btn px-4 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors" data-index="${index}">Edit</button>
-                        <button class="delete-btn px-4 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors" data-index="${index}">Delete</button>
-                    </div>
-                `;
-                dataList.appendChild(listItem);
-            });
-
-            // Add event listeners to the new buttons
-            document.querySelectorAll('.edit-btn').forEach(button => {
-                button.addEventListener('click', handleEdit);
-            });
-            document.querySelectorAll('.delete-btn').forEach(button => {
-                button.addEventListener('click', handleDelete);
-            });
-        }
-        
-        // Initial rendering on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            renderChart();
-            renderDataList();
-        });
-
-        // Get the input and button elements
-        const dateInput = document.getElementById('dateInput');
-        const firstWeightInput = document.getElementById('firstWeightInput');
-        const lastWeightInput = document.getElementById('lastWeightInput');
-        const saveButton = document.getElementById('saveButton');
-        const exportButton = document.getElementById('exportButton');
-
-        // Modal elements
-        const alertModal = document.getElementById('alertModal');
-        const modalMessage = document.getElementById('modalMessage');
-        const closeModalButton = document.getElementById('closeModalButton');
-
-        // Function to show the custom modal
-        function showModal(message) {
-            modalMessage.textContent = message;
-            alertModal.style.display = 'flex';
-        }
-
-        // Function to hide the custom modal
-        function hideModal() {
-            alertModal.style.display = 'none';
-        }
-
-        // Function to handle saving an entry (add or update)
-        function saveEntry() {
-            const date = dateInput.value;
-            const firstWeight = parseFloat(firstWeightInput.value);
-            const lastWeight = parseFloat(lastWeightInput.value) || firstWeight;
-
-            if (date && !isNaN(firstWeight)) {
-                // Find if an entry with the same date already exists
-                const existingIndex = parsedData.findIndex(entry => entry.date === date);
-
-                if (existingIndex !== -1) {
-                    // Update existing entry
-                    parsedData[existingIndex] = { date, firstWeight, lastWeight };
-                } else {
-                    // Add new entry
-                    parsedData.push({ date, firstWeight, lastWeight });
-                    // Sort the data by date after adding a new entry
-                    parsedData.sort((a, b) => new Date(a.date) - new Date(b.date));
-                }
-
-                renderChart();
-                renderDataList();
-
-                // Clear the input fields
-                dateInput.value = '';
-                firstWeightInput.value = '';
-                lastWeightInput.value = '';
+    document.getElementById('btn-import').onclick = ()=>{
+      const f = document.getElementById('file').files[0];
+      if (!f){ alert('Choose a CSV file first.'); return; }
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const text = reader.result.trim();
+          const lines = text.split(/\r?\n/).filter(Boolean);
+          const start = lines[0].toLowerCase().includes('date') ? 1 : 0;
+          let count=0;
+          for (let i=start;i<lines.length;i++){
+            const [dateStr, weightStr] = lines[i].split(',');
+            if (!dateStr) continue;
+            let d;
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){
+              d = dateStr;
+            } else if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)){
+              const [dd,mm,yyyy] = dateStr.split('-');
+              d = `${yyyy}-${mm}-${dd}`;
             } else {
-                showModal('Please enter a valid date and at least the first weight.');
+              continue; // skip unknown format
             }
-        }
-        
-        // Function to handle the edit button click
-        function handleEdit(event) {
-            const indexToEdit = event.target.getAttribute('data-index');
-            const entry = parsedData[indexToEdit];
-            if (entry) {
-                dateInput.value = entry.date;
-                firstWeightInput.value = entry.firstWeight;
-                lastWeightInput.value = entry.lastWeight;
-            }
-        }
+            const w = parseFloat(String(weightStr).replace(',', '.'));
+            if (Number.isFinite(w)) { state.set(d, Number(w.toFixed(1))); count++; }
+          }
+          rerender(`Imported ${count} rows`);
+        }catch(e){ alert('Failed to import CSV: '+e.message); }
+      };
+      reader.readAsText(f);
+    };
 
-        // Function to handle the delete button click
-        function handleDelete(event) {
-            const indexToDelete = event.target.getAttribute('data-index');
-            parsedData.splice(indexToDelete, 1);
-            renderChart();
-            renderDataList();
-        }
-
-        // Function to export data to a CSV file
-        function exportToCSV() {
-            // Create the CSV header
-            let csvContent = "Date,First Checked Weight (kg),Last Checked Weight (kg)\n";
-
-            // Add the data rows
-            parsedData.forEach(row => {
-                csvContent += `${row.date},${row.firstWeight},${row.lastWeight}\n`;
-            });
-
-            // Create a Blob and a link to download the file
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'mohesh_weight_tracker.csv');
-            link.style.visibility = 'hidden';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // Add event listeners
-        saveButton.addEventListener('click', saveEntry);
-        exportButton.addEventListener('click', exportToCSV);
-        closeModalButton.addEventListener('click', hideModal);
-
-        document.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') {
-                saveEntry();
-            }
-        });
-        
-    </script>
+    // Initialize UI
+    rerender();
+  </script>
 </body>
 </html>
